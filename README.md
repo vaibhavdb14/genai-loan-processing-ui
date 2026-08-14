@@ -28,8 +28,8 @@ Follow these steps to clone the repository and run the UI locally. Ensure you ha
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git](https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git)
-cd YOUR_REPO_NAME
+git clone [https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git](https://github.com/vaibhavdb14/genai-loan-processing-ui.git)
+cd genai-loan-processing-ui
 ```
 
 ### 2. Install Dependencies
