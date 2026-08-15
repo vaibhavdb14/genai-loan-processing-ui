@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Check, 
@@ -8,14 +8,56 @@ import {
   ChevronLeft,
   ServerCog,
   CheckCircle2,
-  CircleDashed
+  CircleDashed,
+  X,
+  AlertTriangle
 } from 'lucide-react';
+
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+
+const formatFileSize = (bytes) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const getFileKey = (file) => `${file.name}-${file.size}-${file.lastModified}`;
+
+const isAllowedFileType = (file) => {
+  if (ALLOWED_MIME_TYPES.includes(file.type)) return true;
+  const extension = file.name.includes('.')
+    ? file.name.slice(file.name.lastIndexOf('.')).toLowerCase()
+    : '';
+  return ALLOWED_EXTENSIONS.includes(extension);
+};
+
+const validateFile = (file) => {
+  if (!isAllowedFileType(file)) {
+    return {
+      valid: false,
+      reason: `${file.name}: unsupported file type. Allowed: PDF, JPG, PNG.`,
+    };
+  }
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return {
+      valid: false,
+      reason: `${file.name}: exceeds 10 MB limit.`,
+    };
+  }
+  return { valid: true };
+};
 
 const NewApplication = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   // Basic state to hold form data for the review step
   const [formData, setFormData] = useState({
@@ -27,6 +69,73 @@ const NewApplication = () => {
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const processFiles = (fileList) => {
+    if (!fileList || fileList.length === 0) return;
+
+    const incomingFiles = Array.from(fileList);
+    const errors = [];
+    const acceptedFiles = [];
+
+    incomingFiles.forEach((file) => {
+      const result = validateFile(file);
+      if (result.valid) {
+        acceptedFiles.push(file);
+      } else {
+        errors.push(result.reason);
+      }
+    });
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+    } else {
+      setValidationErrors([]);
+    }
+
+    if (acceptedFiles.length > 0) {
+      setSelectedFiles((prev) => {
+        const existingKeys = new Set(prev.map(getFileKey));
+        const nextFiles = [...prev];
+        acceptedFiles.forEach((file) => {
+          const key = getFileKey(file);
+          if (!existingKeys.has(key)) {
+            existingKeys.add(key);
+            nextFiles.push(file);
+          }
+        });
+        return nextFiles;
+      });
+    }
+  };
+
+  const handleFileInputChange = (e) => {
+    processFiles(e.target.files);
+    e.target.value = '';
+  };
+
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRemoveFile = (fileKey) => {
+    setSelectedFiles((prev) => prev.filter((file) => getFileKey(file) !== fileKey));
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    processFiles(e.dataTransfer.files);
   };
 
   // Simulated AI Processing Pipeline
@@ -164,23 +273,72 @@ const NewApplication = () => {
           {step === 3 && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <h2 className="text-xl font-semibold text-text-primary border-b border-border-light pb-4">3. Document Upload</h2>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
               
-              <div className="border-2 border-dashed border-border-light bg-banking-softBlue/20 rounded-lg p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-banking-softBlue/40 transition-colors">
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-lg p-10 flex flex-col items-center justify-center text-center transition-colors ${
+                  isDragOver
+                    ? 'border-banking-primary bg-banking-softBlue/40'
+                    : 'border-border-light bg-banking-softBlue/20 hover:bg-banking-softBlue/30'
+                }`}
+              >
                 <UploadCloud size={48} className="text-banking-primary mb-4" />
                 <h3 className="font-semibold text-text-primary text-lg mb-1">Drag & Drop Documents</h3>
                 <p className="text-text-secondary text-sm mb-4">Supported formats: PDF, JPG, PNG (Max 10MB each)</p>
-                <button className="bg-banking-card border border-border text-text-primary px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50">
+                <button
+                  type="button"
+                  onClick={handleBrowseClick}
+                  className="bg-banking-card border border-border text-text-primary px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50"
+                >
                   Browse Files
                 </button>
               </div>
 
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-text-primary mb-3">Uploaded Documents (3/5 Required)</h4>
-                <div className="space-y-2">
-                  <FileRow name="Salary_Slip_Last_3_Months.pdf" type="Income Proof" size="1.2 MB" />
-                  <FileRow name="Bank_Statement_6_Months.pdf" type="Financials" size="3.4 MB" />
-                  <FileRow name="PAN_Card_Copy.jpg" type="Identity Proof" size="840 KB" />
+              {validationErrors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                  <div className="flex items-start gap-2 text-banking-error text-sm font-medium mb-2">
+                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                    <span>Some files could not be added:</span>
+                  </div>
+                  <ul className="space-y-1 text-sm text-banking-error list-disc list-inside">
+                    {validationErrors.map((error) => (
+                      <li key={error}>{error}</li>
+                    ))}
+                  </ul>
                 </div>
+              )}
+
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-text-primary mb-3">
+                  Selected Documents ({selectedFiles.length})
+                </h4>
+                {selectedFiles.length === 0 ? (
+                  <p className="text-sm text-text-muted border border-dashed border-border-light rounded-md p-4 text-center">
+                    No documents selected yet. Use Browse Files or drag and drop documents above.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedFiles.map((file) => (
+                      <FileRow
+                        key={getFileKey(file)}
+                        name={file.name}
+                        size={formatFileSize(file.size)}
+                        onRemove={() => handleRemoveFile(getFileKey(file))}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -211,9 +369,33 @@ const NewApplication = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-banking-success font-medium bg-green-50 p-4 rounded-md border border-green-200 text-sm">
-                <CheckCircle2 size={18} />
-                Completeness Status: All Required Documents Uploaded
+              <div>
+                <h3 className="text-sm font-medium text-text-primary mb-3">
+                  Selected Documents ({selectedFiles.length})
+                </h3>
+                {selectedFiles.length === 0 ? (
+                  <div className="flex items-center gap-2 text-banking-warning font-medium bg-yellow-50 p-4 rounded-md border border-yellow-200 text-sm">
+                    <AlertTriangle size={18} />
+                    No documents selected. Go back to Step 3 to add documents before submitting.
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2 mb-4">
+                      {selectedFiles.map((file) => (
+                        <FileRow
+                          key={getFileKey(file)}
+                          name={file.name}
+                          size={formatFileSize(file.size)}
+                          readOnly
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 text-banking-success font-medium bg-green-50 p-4 rounded-md border border-green-200 text-sm">
+                      <CheckCircle2 size={18} />
+                      {selectedFiles.length} document{selectedFiles.length === 1 ? '' : 's'} selected and ready for submission.
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -270,18 +452,34 @@ const InputField = ({ label, type = "text", placeholder, name, value, onChange }
   </div>
 );
 
-const FileRow = ({ name, type, size }) => (
+const FileRow = ({ name, size, onRemove, readOnly = false }) => (
   <div className="flex items-center justify-between p-3 border border-border-light rounded-md bg-white">
-    <div className="flex items-center gap-3">
-      <FileText size={20} className="text-text-secondary" />
-      <div>
-        <p className="text-sm font-medium text-text-primary">{name}</p>
-        <p className="text-xs text-text-muted">{type} • {size}</p>
+    <div className="flex items-center gap-3 min-w-0">
+      <FileText size={20} className="text-text-secondary shrink-0" />
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-text-primary truncate">{name}</p>
+        <p className="text-xs text-text-muted">{size}</p>
       </div>
     </div>
-    <span className="text-xs font-medium text-banking-success bg-green-50 px-2 py-1 rounded border border-green-200 flex items-center gap-1">
-      <Check size={12} /> Uploaded
-    </span>
+    {readOnly ? (
+      <span className="text-xs font-medium text-text-secondary bg-gray-50 px-2 py-1 rounded border border-border-light shrink-0">
+        Selected
+      </span>
+    ) : (
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-xs font-medium text-text-secondary bg-gray-50 px-2 py-1 rounded border border-border-light">
+          Selected
+        </span>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1 text-text-muted hover:text-banking-error hover:bg-red-50 rounded transition-colors"
+          aria-label={`Remove ${name}`}
+        >
+          <X size={16} />
+        </button>
+      </div>
+    )}
   </div>
 );
 
