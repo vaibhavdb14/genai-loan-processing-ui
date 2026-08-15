@@ -130,7 +130,10 @@ const Dashboard = () => {
                     {getStatusBadge(app.status)}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-banking-primary font-medium text-sm hover:underline opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => navigate(`/applications/${app.id}`)}
+                      className="text-banking-primary font-medium text-sm hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
                       Review
                     </button>
                   </td>
