@@ -62,13 +62,24 @@ const NewApplication = () => {
   // Basic state to hold form data for the review step
   const [formData, setFormData] = useState({
     applicantName: '',
+    dateOfBirth: '',
+    mobileNumber: '',
+    email: '',
     panNumber: '',
+    customerId: '',
+    address: '',
     loanType: '',
     amount: '',
+    monthlyIncome: '',
+    employmentType: '',
+    existingEmi: '',
   });
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
   const processFiles = (fileList) => {
@@ -223,15 +234,66 @@ const NewApplication = () => {
             <div className="space-y-6 animate-in fade-in duration-300">
               <h2 className="text-xl font-semibold text-text-primary border-b border-border-light pb-4">1. Generic Applicant Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Applicant Name" name="applicantName" placeholder="Full legal name" value={formData.applicantName} onChange={handleInputChange} />
-                <InputField label="Date of Birth" type="date" />
-                <InputField label="Mobile Number" placeholder="+91" />
-                <InputField label="Email Address" type="email" placeholder="applicant@email.com" />
-                <InputField label="PAN / Identification Number" name="panNumber" placeholder="ABCDE1234F" value={formData.panNumber} onChange={handleInputChange} />
-                <InputField label="Customer ID (Optional)" placeholder="If existing customer" />
+                <InputField
+                  label="Applicant Name"
+                  name="applicantName"
+                  placeholder="Full legal name"
+                  value={formData.applicantName}
+                  onChange={handleInputChange}
+                />
+
+                <InputField
+                  label="Date of Birth"
+                  name="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={handleInputChange}
+                />
+
+                <InputField
+                  label="Mobile Number"
+                  name="mobileNumber"
+                  placeholder="+91"
+                  value={formData.mobileNumber}
+                  onChange={handleInputChange}
+                />
+
+                <InputField
+                  label="Email Address"
+                  name="email"
+                  type="email"
+                  placeholder="applicant@email.com"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                />
+
+                <InputField
+                  label="PAN / Identification Number"
+                  name="panNumber"
+                  placeholder="ABCDE1234F"
+                  value={formData.panNumber}
+                  onChange={handleInputChange}
+                />
+
+                <InputField
+                  label="Customer ID (Optional)"
+                  name="customerId"
+                  placeholder="If existing customer"
+                  value={formData.customerId}
+                  onChange={handleInputChange}
+                />
+
                 <div className="col-span-1 md:col-span-2">
-                  <label className="block text-sm font-medium text-text-primary mb-1">Residential Address</label>
-                  <textarea className="w-full px-4 py-2 border border-border rounded-md focus:ring-2 focus:ring-banking-primary focus:outline-none text-sm text-text-primary" rows="3"></textarea>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Residential Address
+                  </label>
+                  <textarea
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-border rounded-md focus:ring-2 focus:ring-banking-primary focus:outline-none text-sm text-text-primary"
+                    rows="3"
+                  />
                 </div>
               </div>
             </div>
